@@ -1,8 +1,5 @@
-#
-# A simple makefile for compiling a c++ project
-#
 SRC=./src
-TARGET=./target
+TARGET=./src/target
 GCC = g++
 CFLAGS = -o $(TARGET)/CoinFlipper.out
 ARGS = 101

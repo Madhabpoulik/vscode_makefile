@@ -1,0 +1,13 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/madhab/Desktop/vscode_makefile/Calculator",
+            "binaryPath": "/home/madhab/Desktop/vscode_makefile/Calculator/src/target/main.out",
+            "binaryArgs": [
+                "50",
+                "-",
+                "20"
+            ]
+        }
+    ]
+}
