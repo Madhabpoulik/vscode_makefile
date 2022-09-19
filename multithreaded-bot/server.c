@@ -37,7 +37,7 @@ void *pthread_msg_receive(void *arg);
 void signal_handler(int signal_number);
 
 /*for sending msg to msgque*/
-int msgSend(int msgqid, my_msg mymsg);
+int msgSend(my_msg mymsg);
 
 /*for recieveing msg from msgque*/
 int msgReceive(int msgqid);
@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     pthread_t pthread;
     socklen_t client_address_len;
     char buffer[MAXLINE];
-    my_msg *msg_to_get;
+    my_msg *msg_to_receive;
     long int msg_receive = 0;
 
 
@@ -125,6 +125,7 @@ int main(int argc, char *argv[]) {
          * memory when the program exits. It can be safely ignored.
          */
         pthread_arg = (pthread_arg_t *)malloc(sizeof *pthread_arg);
+        msg_to_receive = (my_msg *)malloc(sizeof *msg_to_receive);
         if (!pthread_arg) {
             perror("malloc");
             continue;
@@ -142,6 +143,7 @@ int main(int argc, char *argv[]) {
         /* Initialise pthread argument. */
         pthread_arg->new_socket_fd = new_socket_fd;
         pthread_arg->msgqid = msgqid;
+        msg_to_receive->msgqid = msgqid;
         /* TODO: Initialise arguments passed to threads here.*/
 
         /* Create thread to serve connection to client. */
@@ -151,9 +153,9 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        if (pthread_create(&pthread, &pthread_attr, pthread_msg_receive, (void *)pthread_arg) != 0) {
+        if (pthread_create(&pthread, &pthread_attr, pthread_msg_receive, (void *)msg_to_receive) != 0) {
             perror("pthread_create failed");
-            free(pthread_arg);
+            free(msg_to_receive);
             continue;
         }
         
@@ -185,14 +187,11 @@ void *pthread_msg_receive(void *arg) {
     my_msg *mymsg = (my_msg *)arg;
     int msgqid = mymsg->msgqid;
     /* TODO: Get arguments passed to threads here. */
-
-    //free(arg);
+    printf("abc");
+    free(arg);
 
     /* TODO: Put client interaction code here.*/
-    static int c = 0;
-    printf("%d", c + 1);
     msgReceive(msgqid);
-
     return NULL;
 }
 
@@ -216,9 +215,13 @@ void func(int connfd, struct sockaddr_in client_addr, int msgqid)
         // print buffer which contains the client contents
 
         mymsg.msg_type=1;
+        mymsg.msgqid = msgqid;
         strcpy(mymsg.some_text,buff);
-        msgSend(msgqid, mymsg);
-        //printf("%d:%s",client_addr.sin_port, buff);
+
+        msgSend(mymsg);
+
+        printf("%d:%s",client_addr.sin_port, buff);
+
         //msgReceive(msgqid);
         bzero(buff, MAXLINE);        
         
@@ -229,11 +232,6 @@ void func(int connfd, struct sockaddr_in client_addr, int msgqid)
         //printf("Message : ");
         //write(connfd, buff, sizeof(buff));
    
-        // if msg contains "Exit" then server exit and chat ended.
-        // if (strncmp("exit", buff, 4) == 0) {
-        //     printf("Server Exit...\n");
-        //     break;
-        // }
     }
 }
 
@@ -242,11 +240,13 @@ int msgReceive(int msgid) {
     int running=1;
     long int msg_to_rec=0;
     struct my_msg my_recieved_msg;
-    //msgid=msgget((key_t)14534,0666|IPC_CREAT);
     while(running)
     {
-            msgrcv(msgid,(void *)&my_recieved_msg,MAXLINE,msg_to_rec,0);                 
-            printf("Data received: %s\n",my_recieved_msg.some_text);
+            if(msgrcv(msgid,(void *)&my_recieved_msg,MAXLINE,msg_to_rec,0) == -1)
+                    printf("Msg not received\n");     
+            else{
+                    printf("Data received: %s\n",my_recieved_msg.some_text);
+            }
             if(strncmp(my_recieved_msg.some_text,"exit",4)==0)
             {
                     running=0;
@@ -255,19 +255,14 @@ int msgReceive(int msgid) {
     msgctl(msgid,IPC_RMID,0);
 }
 
-int msgSend(int msgid, struct my_msg my_sent_msg) {
+int msgSend(struct my_msg my_sent_msg) {
 
-     if(strncmp(my_sent_msg.some_text,"exit",4)==0)
-    {
-        exit(0);
-    }
-    else if(msgsnd(msgid,(void *)&my_sent_msg, MAXLINE,0)==-1)
+    if(msgsnd(my_sent_msg.msgqid,(void *)&my_sent_msg, MAXLINE,0)==-1)
     {
             printf("Msg not sent\n");
     }
     else{
             printf("Msg sent\n");
     }
-       
     
 }
