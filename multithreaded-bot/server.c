@@ -187,7 +187,6 @@ void *pthread_msg_receive(void *arg) {
     my_msg *mymsg = (my_msg *)arg;
     int msgqid = mymsg->msgqid;
     /* TODO: Get arguments passed to threads here. */
-    printf("abc");
     free(arg);
 
     /* TODO: Put client interaction code here.*/
@@ -220,7 +219,7 @@ void func(int connfd, struct sockaddr_in client_addr, int msgqid)
 
         msgSend(mymsg);
 
-        printf("%d:%s",client_addr.sin_port, buff);
+        //printf("%d:%s",client_addr.sin_port, buff);
 
         //msgReceive(msgqid);
         bzero(buff, MAXLINE);        
