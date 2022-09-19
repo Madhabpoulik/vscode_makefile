@@ -206,23 +206,47 @@ void func(int connfd, struct sockaddr_in client_addr, int msgqid)
     int n;
     int running = 1;
     struct my_msg mymsg;
+    int receivedConn;
+
+    
     while(running) {
         bzero(buff, MAXLINE);
    
         // read the message from client and copy it in buffer
-        read(connfd, buff, sizeof(buff));
+        //read(connfd, buff, sizeof(buff));
+        receivedConn = recv(connfd, &buff,MAXLINE, 0);
+        if(strcmp(buff, "exit\n") == 0){
+            printf("Disconnected from %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+            close(connfd);
+            break;
+        }else{
+            mymsg.msg_type=1;
+            mymsg.msgqid = msgqid;
+            strcpy(mymsg.some_text,buff);
+
+            if(receivedConn != 0)
+                msgSend(mymsg);
+            else{
+                printf("connection closed with the client\n");
+                running = 0;
+            }
+            bzero(buff, sizeof(buff));
+        }
+        //int receivedConn = recv(connfd, &buff,1, 0);
         // print buffer which contains the client contents
 
-        mymsg.msg_type=1;
-        mymsg.msgqid = msgqid;
-        strcpy(mymsg.some_text,buff);
+        // mymsg.msg_type=1;
+        // mymsg.msgqid = msgqid;
+        // strcpy(mymsg.some_text,buff);
 
-        msgSend(mymsg);
+        // if(receivedConn != 0)
+        //     msgSend(mymsg);
+        // else{
+        //     printf("connection closed with the client");
+        // }
 
         //printf("%d:%s",client_addr.sin_port, buff);
-
-        //msgReceive(msgqid);
-        bzero(buff, MAXLINE);        
+        //bzero(buff, MAXLINE);        
         
         // copy server message in the buffer
         //while ((buff[n++] = getchar()) != '\n');
