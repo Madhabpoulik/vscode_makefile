@@ -17,6 +17,7 @@
 typedef struct my_msg{  
         long int msg_type;  
         char some_text[MAXLINE];
+        struct sockaddr_in client_address;
         int msgqid; 
  }my_msg; 
 
@@ -43,6 +44,8 @@ int msgSend(my_msg mymsg);
 int msgReceive(int msgqid);
 
 void func(int connfd, struct sockaddr_in client_addr, int msgqid);
+
+int port;
 
 int main(int argc, char *argv[]) {
     int port, socket_fd, new_socket_fd;
@@ -125,8 +128,13 @@ int main(int argc, char *argv[]) {
          * memory when the program exits. It can be safely ignored.
          */
         pthread_arg = (pthread_arg_t *)malloc(sizeof *pthread_arg);
-        msg_to_receive = (my_msg *)malloc(sizeof *msg_to_receive);
         if (!pthread_arg) {
+            perror("malloc");
+            continue;
+        }
+
+        msg_to_receive = (my_msg *)malloc(sizeof *msg_to_receive);
+         if (!msg_to_receive) {
             perror("malloc");
             continue;
         }
@@ -186,6 +194,7 @@ void *pthread_routine(void *arg) {
 void *pthread_msg_receive(void *arg) {
     my_msg *mymsg = (my_msg *)arg;
     int msgqid = mymsg->msgqid;
+    struct sockaddr_in client_addr = mymsg->client_address;
     /* TODO: Get arguments passed to threads here. */
     free(arg);
 
@@ -200,12 +209,12 @@ void signal_handler(int signal_number) {
     exit(0);
 }
 
-void func(int connfd, struct sockaddr_in client_addr, int msgqid)
-{
+void func(int connfd, struct sockaddr_in client_addr, int msgqid) {
     char buff[MAXLINE];
     int n;
     int running = 1;
     struct my_msg mymsg;
+    memset(&mymsg, 0, sizeof(mymsg));
     int receivedConn;
 
     
@@ -216,34 +225,24 @@ void func(int connfd, struct sockaddr_in client_addr, int msgqid)
         //read(connfd, buff, sizeof(buff));
         receivedConn = recv(connfd, &buff,MAXLINE, 0);
         if(strcmp(buff, "exit\n") == 0){
-            printf("Disconnected from %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+            printf("Disconnected from with:%d\n", client_addr.sin_port);
             close(connfd);
+            running = 0;
             break;
         }else{
             mymsg.msg_type=1;
             mymsg.msgqid = msgqid;
             strcpy(mymsg.some_text,buff);
-
-            if(receivedConn != 0)
+            port = client_addr.sin_port;
+            if(receivedConn != 0){
                 msgSend(mymsg);
+            }
             else{
-                printf("connection closed with the client\n");
+                printf("connection closed with the client:%d\n",port);
                 running = 0;
             }
             bzero(buff, sizeof(buff));
         }
-        //int receivedConn = recv(connfd, &buff,1, 0);
-        // print buffer which contains the client contents
-
-        // mymsg.msg_type=1;
-        // mymsg.msgqid = msgqid;
-        // strcpy(mymsg.some_text,buff);
-
-        // if(receivedConn != 0)
-        //     msgSend(mymsg);
-        // else{
-        //     printf("connection closed with the client");
-        // }
 
         //printf("%d:%s",client_addr.sin_port, buff);
         //bzero(buff, MAXLINE);        
@@ -263,17 +262,21 @@ int msgReceive(int msgid) {
     int running=1;
     long int msg_to_rec=0;
     struct my_msg my_recieved_msg;
-    while(running)
-    {
-            if(msgrcv(msgid,(void *)&my_recieved_msg,MAXLINE,msg_to_rec,0) == -1)
-                    printf("Msg not received\n");     
-            else{
-                    printf("Data received: %s\n",my_recieved_msg.some_text);
+    while(running){
+        if(msgrcv(msgid,(void *)&my_recieved_msg,MAXLINE,msg_to_rec,0) == -1){
+                printf("Msg not received\n"); 
+                running = 0;
+        }
+        else{
+            printf("%d: %s\n",port, my_recieved_msg.some_text);
+            if(strcmp(my_recieved_msg.some_text, "exit\n") == 0){
+                printf("Disconnected from %d\n",port);
+                port  = 0;
+                running = 0;
+                break;
             }
-            if(strncmp(my_recieved_msg.some_text,"exit",4)==0)
-            {
-                    running=0;
-            }
+            port  = 0;
+        }
     }
     msgctl(msgid,IPC_RMID,0);
 }
@@ -284,8 +287,8 @@ int msgSend(struct my_msg my_sent_msg) {
     {
             printf("Msg not sent\n");
     }
-    else{
-            printf("Msg sent\n");
-    }
+    // else{
+    //         printf("Msg sent\n");
+    // }
     
 }
