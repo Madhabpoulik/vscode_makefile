@@ -118,8 +118,6 @@ void func(int sockfd, struct sockaddr_in server_addr) {
 
         write(sockfd, client, sizeof(buff));
         bzero(buff, sizeof(buff));
-        //read(sockfd, buff, sizeof(buff));
-        //printf("Server(%d) : %s",server_addr.sin_port, buff);
         if ((strncmp(buff, "exit", 4)) == 0) {
             printf("Client Exit...\n");
             break;
