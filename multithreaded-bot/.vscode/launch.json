@@ -5,11 +5,35 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
+            "name": "(gdb) Launch-server",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/server.out",
-            "args": ["7028"],
+            "program": "${workspaceFolder}/src/target/servermain.out",
+            "args": ["6070"],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description":  "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch-client",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/target/client.o",
+            "args": ["127.0.0.1"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
