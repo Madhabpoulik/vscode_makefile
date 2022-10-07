@@ -61,6 +61,7 @@ void sendToAll(messanger* sendingmsg, int curr);
 
 /* for utilizing globally. */
 int port;
+sqlite3 *db;
 int clients[100];
 int n = 0;
 
@@ -113,7 +114,6 @@ int main(int argc, char *argv[]) {
     }
 
      /* INitializing Use of database. */
-    sqlite3 *db;
     char *zErrMsg = 0;
     int rc, i;
 
@@ -123,10 +123,17 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "can't open database:%s\n", sqlite3_errmsg(db));
       return(0);
     } else {
-        create(db);   
-      fprintf(stderr, "Opened database successfully\n");
+        fprintf(stderr, "Opened database successfully\n");
+        create_message_history(db);   
+        create_active_connections(db);
     }
 
+    printf("want to cleanup message-history table?(y/n)");
+    char response;
+    scanf("%c", &response);
+    if(response == 'y')
+            cleanup_message_history(db);
+        
 
     /* Assign signal handlers to signals. */
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
@@ -256,6 +263,7 @@ void *pthread_msg_receive(void *arg) {
 
 void signal_handler(int signal_number) {
     /* TODO: Put exit cleanup code here. */
+    cleanup_active_connections(db);
     exit(0);
 }
 
@@ -293,7 +301,7 @@ void func(int connfd, struct sockaddr_in client_addr, int msgqid, sqlite3 *db) {
             }
             n--;
 
-            delete(db, id);
+            delete_active_connections(db, id);
             close(connfd);
             running = 0;
             break;
@@ -306,7 +314,8 @@ void func(int connfd, struct sockaddr_in client_addr, int msgqid, sqlite3 *db) {
             if(receivedConn != 0){
                 sendToAll(&newclient, connfd);
                 msgSend(mymsg);
-                insert(db, id, newclient.name, newclient.msg);
+                insert_active_connections(db, id, newclient.name);
+                insert_message_history(db, id, newclient.name, newclient.msg);
             }
              else{
                  /* handling ctrl + c. */
@@ -323,7 +332,7 @@ void func(int connfd, struct sockaddr_in client_addr, int msgqid, sqlite3 *db) {
                 }
                 n--;
             
-                delete(db, id);
+                delete_active_connections(db, id);
                 memset(&newclient, 0, sizeof(newclient));
                 running = 0;
             }
@@ -376,7 +385,7 @@ int msgSend(struct my_msg my_sent_msg) {
 void sendToAll(messanger* sendingmsg, int curr) {
 
 	int i;
-	printf("sending: %s\n", sendingmsg->msg);
+	//printf("sending %s\n", sendingmsg->msg);
     char buff[MAXLINE];
     sprintf(buff, "%s : %s", sendingmsg->name, sendingmsg->msg);
      /* for sending all the msgs to the other clients. */
@@ -389,7 +398,7 @@ void sendToAll(messanger* sendingmsg, int curr) {
 				perror("sending failure...");
 				continue;
 			}
-            printf("sending successful to %d\n", clients[i]);
+            //printf("sending successful to %d\n", clients[i]);
 		}
 	}
 

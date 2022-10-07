@@ -110,7 +110,7 @@ void func(int sockfd, struct sockaddr_in server_addr) {
     for (;;) {
 
         bzero(buff, sizeof(buff));
-        printf("%s : ", cname);
+        //printf("%s : ", cname);
         n = 0;
         fgets(buff, sizeof buff, stdin);
         //strcpy(client->msg, buff);
